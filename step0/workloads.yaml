@@ -1,0 +1,98 @@
+# CRYODYNE(TM) - korak 0: skup opterecenja (workload suite), verzija 0.1, 2026-11-23
+# Dimenzije modela preuzete iz zvanicnih config.json fajlova na Hugging Face-u (vidi "source").
+# Polja oznacena "assumption" su procene i moraju se potvrditi u koraku 1.
+
+models:
+  nemotron_h_8b:
+    family: hybrid_mamba2
+    source: https://huggingface.co/nvidia/Nemotron-H-8B-Base-8K/raw/main/config.json
+    hidden: 4096
+    layers: {mamba2: 24, attention: 4, mlp: 24}
+    attention: {q_heads: 32, kv_heads: 8, head_dim: 128}
+    mamba2: {heads: 128, head_dim: 64, state: 128, groups: 8, conv_kernel: 4}
+    mlp: {intermediate: 21504, gated: false}
+    vocab: 131072
+    tied_embeddings: false   # assumption (ne pise u izvodu iz config-a)
+
+  nemotron_h_56b:
+    family: hybrid_mamba2
+    source: https://huggingface.co/nvidia/Nemotron-H-56B-Base-8K/raw/main/config.json
+    hidden: 8192
+    layers: {mamba2: 54, attention: 10, mlp: 54}   # 118 slojeva; raspodela iz rada o Nemotron-H
+    attention: {q_heads: 64, kv_heads: 8, head_dim: 128}
+    mamba2: {heads: 256, head_dim: 64, state: 256, groups: 8, conv_kernel: 4}
+    mlp: {intermediate: 32768, gated: false}
+    vocab: 131072
+    tied_embeddings: false
+
+  qwen3_next_80b_a3b:
+    family: hybrid_gated_deltanet_moe
+    source: https://huggingface.co/Qwen/Qwen3-Next-80B-A3B-Instruct/raw/main/config.json
+    hidden: 2048
+    layers: {gated_deltanet: 36, attention: 12}    # 48 slojeva, svaki 4. je puna atencija
+    attention: {q_heads: 16, kv_heads: 2, head_dim: 256, output_gate: true}
+    gated_deltanet: {k_heads: 16, v_heads: 32, k_dim: 128, v_dim: 128, conv_kernel: 4}
+    moe: {experts: 512, active: 10, expert_intermediate: 512, shared_intermediate: 512, every_layer: true}
+    vocab: 151936
+    tied_embeddings: false
+
+  kimi_linear_48b_a3b:
+    family: hybrid_kda_mla_moe
+    source: https://huggingface.co/moonshotai/Kimi-Linear-48B-A3B-Instruct/raw/main/config.json
+    hidden: 2304
+    layers: {kda: 20, mla: 7}                       # 27 slojeva
+    mla: {heads: 32, kv_lora_rank: 512, q_lora_rank: null, qk_nope: 128, qk_rope: 64, v_dim: 128}
+    kda: {heads: 32, head_dim: 128, conv_kernel: 4}
+    moe: {experts: 256, active: 8, expert_intermediate: 1024, shared_experts: 1, first_dense_layers: 1, dense_intermediate: 9216}
+    vocab: 163840
+    tied_embeddings: false
+
+  bitnet_b158_2b4t:
+    family: transformer_ternary_native
+    source: https://huggingface.co/microsoft/bitnet-b1.58-2B-4T/raw/main/config.json
+    hidden: 2560
+    layers: {attention: 30, mlp: 30}
+    attention: {q_heads: 20, kv_heads: 5, head_dim: 128}
+    mlp: {intermediate: 6912, gated: true}          # relu2 aktivacija
+    vocab: 128256
+    max_context: 4096
+    tied_embeddings: true    # assumption
+
+  llama31_70b:
+    family: transformer_baseline
+    source: https://huggingface.co/unsloth/Llama-3.1-70B/raw/main/config.json
+    hidden: 8192
+    layers: {attention: 80, mlp: 80}
+    attention: {q_heads: 64, kv_heads: 8, head_dim: 128}
+    mlp: {intermediate: 28672, gated: true}
+    vocab: 128256
+    tied_embeddings: false
+
+# Broj bita po tezini u memoriji (ukljucuje skaliranje gde postoji)
+formats:
+  bf16: 16
+  fp8: 8
+  mxfp4: 4.25          # 4 bita + 8-bitni faktor na blok od 32
+  ternary: 1.6         # 5 trita u bajtu; teorijski 1.58 (assumption o pakovanju)
+  sub1bit: 0.7         # primer: LittleBit/NanoQuant oblast; menja se po metodi
+embedding_bits: 8      # assumption: embedding i lm_head ostaju 8-bitni u svim formatima
+kv_bits: 16            # KV kes u BF16; varijanta FP8 se racuna posebno
+state_bits: 32         # assumption: stanje rekurencije u FP32 zbog tacnosti
+
+cards:
+  individual: {memory_gb: 32, note: "assumption - klasa Blackhole p150 / RTX 5090"}
+  datacenter: {memory_gb: 64, note: "assumption"}
+
+scenarios:
+  # ---- individualni korisnici: batch 1, meri se tok/s za jednog korisnika
+  - {id: P1, segment: individual, model: nemotron_h_8b,       format: ternary, batch: 1, context: 32768,   note: "osnovni lokalni hibrid"}
+  - {id: P2, segment: individual, model: nemotron_h_56b,      format: ternary, batch: 1, context: 131072,  note: "HIPOTETICKI ternarni hibrid ~56B - nosilac price"}
+  - {id: P3, segment: individual, model: qwen3_next_80b_a3b,  format: mxfp4,   batch: 1, context: 131072,  note: "lokalni MoE hibrid"}
+  - {id: P4, segment: individual, model: kimi_linear_48b_a3b, format: mxfp4,   batch: 1, context: 1048576, note: "vrlo dug kontekst"}
+  - {id: P5, segment: individual, model: llama31_70b,         format: sub1bit, batch: 1, context: 32768,   note: "transformer + sub-1-bit skladistenje"}
+  - {id: P6, segment: individual, model: bitnet_b158_2b4t,    format: ternary, batch: 1, context: 4096,    note: "jedini stvarni nativni ternarni model - referenca tacnosti"}
+  # ---- data centar: meri se propusnost i kasnjenje pod opterecenjem
+  - {id: D1, segment: datacenter, model: qwen3_next_80b_a3b,  format: fp8,     batch: 64,  context: 8192,   note: "chat/agent saobracaj"}
+  - {id: D2, segment: datacenter, model: kimi_linear_48b_a3b, format: fp8,     batch: 32,  context: 131072, note: "dugi dokumenti, agenti"}
+  - {id: D3, segment: datacenter, model: nemotron_h_56b,      format: ternary, batch: 128, context: 4096,   note: "HIPOTETICKI ternarni - visoka propusnost"}
+  - {id: D4, segment: datacenter, model: llama31_70b,         format: fp8,     batch: 64,  context: 8192,   note: "poredjenje sa GPU"}

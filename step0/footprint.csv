@@ -1,0 +1,11 @@
+id,segment,model,format,batch,context,weights_GB,kv_GB,state_GB,total_GB,card_GB,fits,weight_bytes_per_token_GB,bytes_per_step_full_ctx_GB,tok_s_upper_bound_at_500GBs
+P1,individual,nemotron_h_8b,ternary,1,32768,2.5,0.5,0.1,3.1,32,DA,1.94,2.7,186
+P2,individual,nemotron_h_56b,ternary,1,131072,13.0,5.4,0.92,19.3,32,DA,11.91,19.1,26
+P3,individual,qwen3_next_80b_a3b,mxfp4,1,131072,42.6,3.2,0.08,45.9,32,NE,2.04,5.4,92
+P4,individual,kimi_linear_48b_a3b,mxfp4,1,1048576,26.6,8.5,0.04,35.1,32,NE,2.01,10.6,47
+P5,individual,llama31_70b,sub1bit,1,32768,8.1,10.7,0.0,18.8,32,DA,7.04,17.8,28
+P6,individual,bitnet_b158_2b4t,ternary,1,4096,0.7,0.3,0.0,1.1,32,DA,0.75,1.1,472
+D1,datacenter,qwen3_next_80b_a3b,fp8,64,8192,79.7,12.9,4.83,97.4,64,NE,3.56,26.1,1225
+D2,datacenter,kimi_linear_48b_a3b,fp8,32,131072,49.5,33.8,1.34,84.6,64,NE,3.45,40.0,400
+D3,datacenter,nemotron_h_56b,ternary,128,4096,13.0,21.5,117.66,152.1,64,NE,11.91,268.7,238
+D4,datacenter,llama31_70b,fp8,64,8192,70.6,171.8,0.0,242.4,64,NE,69.5,241.3,133
