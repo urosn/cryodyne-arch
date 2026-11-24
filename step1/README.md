@@ -24,7 +24,7 @@ GPU-u. Rezultati služe kao osnova za poređenje u koracima 2, 5 i 6 i kao ulaz 
 | CPU / RAM | ≥ 16 jezgara, ≥ 64 GB | prevođenje mamba-ssm je zahtevno za CPU |
 | Disk | ≥ 100 GB | model 16 GB + keš paketa |
 | OS | Ubuntu 22.04 ili 24.04, CUDA drajver 12.4+ | većina provajdera nudi gotovu sliku „PyTorch + CUDA" |
-| Trajanje | procena 1,5–3 sata ukupno | prevođenje mamba-ssm može da traje 20–40 min ako nema gotovog paketa |
+| Trajanje | procena: H100 30–90 min, RTX 4090/5090 25–60 min | najveći deo je instalacija; prevođenje mamba-ssm je ograničeno na 30 min |
 
 Gde se iznajmljuje (na sat, bez dugoročnog ugovora): Lambda, RunPod, Vast.ai, a u EU na primer
 Scaleway ili Nebius. Cene se menjaju svakodnevno, pa ih proveri na dan iznajmljivanja.

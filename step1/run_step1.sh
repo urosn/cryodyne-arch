@@ -17,7 +17,9 @@ source .venv/bin/activate
 pip install -q --upgrade pip wheel
 pip install -q torch pyyaml "transformers>=4.56" accelerate einops
 # Optimizovani kerneli. Ako se neki ne instalira, merenje ide dalje i belezi 'nedostupno'.
-pip install -q causal-conv1d mamba-ssm --no-build-isolation || echo "UPOZORENJE: mamba-ssm nije instaliran"
+# Ako nema gotovog paketa, mamba-ssm se prevodi iz izvora; to se ograničava na 30 min da ne bi trošilo iznajmljeno vreme.
+MAX_JOBS=$(nproc) timeout 30m pip install -q causal-conv1d mamba-ssm --no-build-isolation \
+  || echo "UPOZORENJE: mamba-ssm nije instaliran (ili prevođenje > 30 min) - Mamba-2 prefill se preskače"
 pip install -q flash-linear-attention || echo "UPOZORENJE: flash-linear-attention nije instaliran"
 python3 -c "import torch;print('torch',torch.__version__,'cuda',torch.version.cuda,torch.cuda.get_device_name(0))"
 
